@@ -20,7 +20,8 @@
             console.log("异常");
         });
       var playerDiv = document.querySelector("#player");
-      new castplayer.CastPlayer(playerDiv).start();
+      var player = new castplayer.CastPlayer(playerDiv).start();
+        console.log(player.Properties);
     </script>
   
 </body></html>
