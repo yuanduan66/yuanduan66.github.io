@@ -15,36 +15,36 @@
   <body>
     <div id="player" class="gcpa" type="unknown" live="false" state="launching"><div class="gcpb"><video mediagroup="megacast" id="videoContent"></video><audio mediagroup="megacast" id="audioContent"></audio><div class="logo"></div><div class="gcpp"></div><div class="splash"></div><div class="watermark"></div><div class="gcpc"></div><div class="gcpd"><div class="gcpf"><div class="gcpq"></div><div class="gcpe"></div></div><div class="gcpi"><span class="gcpj"></span><span class="gcpn"></span><span class="gcpo"></span><div class="gcpk"><div class="gcpl progressBar"></div><div class="gcpm"></div></div></div></div></div></div>
     <script>
-        screen.orientation.lock('portrait').catch(function() {
+    screen.orientation.lock('portrait').catch(function() {
             // whatever
             console.log("异常");
-        });
-      var playerDiv = document.querySelector("#player");
-      var player = new castplayer.CastPlayer(playerDiv).start();
-        var mediaElement = document.getElementById('videoContent');
+    });
+    var playerDiv = document.querySelector("#player");
+    var player = new castplayer.CastPlayer(playerDiv).start();
+    var mediaElement = document.getElementById('videoContent');
         
-    mediaElement.addEventListener('loadeddata',myHandler,false);
-        
-    mediaElement.addEventListener('pause', onPause);
-    mediaElement.addEventListener('play', onPlay);
-    function myHandler(e) {
+    mediaElement.addEventListener('loadeddata',onLoad,false);
+    mediaElement.addEventListener('pause', onPause,false);
+    mediaElement.addEventListener('play', onPlay,false);
+    function onLoad(e) {
         // What you want to do after the event
         console.log("开始载入数据");
     }
-        function onPause() {
-            if (castPlayer.getState().underflow) {
+    function onPause() {
+        if (castPlayer.getState().underflow) {
             // video is paused because of buffering
             // handing buffering event here
-                console.log("溢出停止");
-            } else {
+            console.log("溢出停止");
+        } else {
             // video is paused for the other reason.   
-                console.log("其他原因停止");
-            }
+            console.log("其他原因停止");
         }
-        function onPlay() {
-            // Now buffering ends.
-            console.log("开始播放");
-        }
+    }
+        
+    function onPlay() {
+        // Now buffering ends.
+        console.log("开始播放");
+    }
     </script>
   
 </body></html>
