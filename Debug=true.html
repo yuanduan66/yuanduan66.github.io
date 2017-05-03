@@ -32,7 +32,7 @@
         console.log("开始载入数据");
     }
     function onPause() {
-        if (castPlayer.getState().underflow) {
+        if (cast.player.api.Player.State.UNDERFLOW) {
             // video is paused because of buffering
             // handing buffering event here
             console.log("溢出停止");
