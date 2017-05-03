@@ -21,11 +21,15 @@
         });
       var playerDiv = document.querySelector("#player");
       var player = new castplayer.CastPlayer(playerDiv).start();
-        var mediaElement = document.getElementById('player');
-        console.log(mediaElement);
-        /*
+        var mediaElement = document.getElementById('videoContent');
+        
+    document.getElementById('myVideo').addEventListener('loadeddata',myHandler,false);
+    function myHandler(e) {
+        // What you want to do after the event
+        console.log("开始载入数据");
         mediaElement.addEventListner('pause', onPause);
         mediaElement.addEventListner('play', onPlay);
+    }
         function onPause() {
             if (castPlayer.getState().underflow) {
             // video is paused because of buffering
@@ -40,7 +44,6 @@
             // Now buffering ends.
             console.log("开始播放");
         }
-        */
     </script>
   
 </body></html>
