@@ -21,7 +21,7 @@
         });
       var playerDiv = document.querySelector("#player");
       var player = new castplayer.CastPlayer(playerDiv).start();
-        var mediaElement = document.getElementById('megacast');
+        var mediaElement = document.getElementById('videoContent');
         mediaElement.addEventListner('pause', onPause);
         mediaElement.addEventListner('play', onPlay);
         function onPause() {
