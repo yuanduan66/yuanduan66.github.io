@@ -23,7 +23,7 @@
       var player = new castplayer.CastPlayer(playerDiv).start();
         var mediaElement = document.getElementById('videoContent');
         
-    document.getElementById('myVideo').addEventListener('loadeddata',myHandler,false);
+    mediaElement.addEventListener('loadeddata',myHandler,false);
     function myHandler(e) {
         // What you want to do after the event
         console.log("开始载入数据");
