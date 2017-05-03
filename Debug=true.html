@@ -21,6 +21,22 @@
         });
       var playerDiv = document.querySelector("#player");
       var player = new castplayer.CastPlayer(playerDiv).start();
+        playerDiv.addEventListner('pause', onPause);
+        playerDiv.addEventListner('play', onPlay);
+        function onPause() {
+            if (castPlayer.getState().underflow) {
+            // video is paused because of buffering
+            // handing buffering event here
+                console.log("溢出停止");
+            } else {
+            // video is paused for the other reason.   
+                console.log("其他原因停止");
+            }
+        }
+        function onPlay() {
+            // Now buffering ends.
+            console.log("开始播放");
+        }
     </script>
   
 </body></html>
