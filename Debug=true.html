@@ -21,8 +21,9 @@
         });
       var playerDiv = document.querySelector("#player");
       var player = new castplayer.CastPlayer(playerDiv).start();
-        playerDiv.addEventListner('pause', onPause);
-        playerDiv.addEventListner('play', onPlay);
+        var mediaElement = document.getElementById('megacast');
+        mediaElement.addEventListner('pause', onPause);
+        mediaElement.addEventListner('play', onPlay);
         function onPause() {
             if (castPlayer.getState().underflow) {
             // video is paused because of buffering
