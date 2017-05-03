@@ -24,11 +24,12 @@
         var mediaElement = document.getElementById('videoContent');
         
     mediaElement.addEventListener('loadeddata',myHandler,false);
+        
+    mediaElement.addEventListener('pause', onPause);
+    mediaElement.addEventListener('play', onPlay);
     function myHandler(e) {
         // What you want to do after the event
         console.log("开始载入数据");
-        mediaElement.addEventListner('pause', onPause);
-        mediaElement.addEventListner('play', onPlay);
     }
         function onPause() {
             if (castPlayer.getState().underflow) {
