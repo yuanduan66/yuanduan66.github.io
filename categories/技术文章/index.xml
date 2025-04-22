@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>技术文章 on 梦想总要有的</title><link>https://example.org/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E7%AB%A0/</link><description>Recent content in 技术文章 on 梦想总要有的</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><copyright>Neil Yuan</copyright><lastBuildDate>Mon, 21 Apr 2025 10:00:00 +0800</lastBuildDate><atom:link href="https://example.org/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E7%AB%A0/index.xml" rel="self" type="application/rss+xml"/><item><title>ARC 和 MRC 赋值过程中的区别</title><link>https://example.org/posts/arc_mrc_retaincount/</link><pubDate>Mon, 21 Apr 2025 10:00:00 +0800</pubDate><guid>https://example.org/posts/arc_mrc_retaincount/</guid><description>&lt;h2 id="简介">简介
+&lt;/h2>&lt;p>上周五技术面试的时候，考官出了个题目：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">NSLock* arrayLock = GetArrayLock();//全局锁
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">NSMutableArray* myArray = GetSharedArray();
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">id anObject;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[arrayLock lock];
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">anObject = [myArray objectAtIndex:0];
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[arrayLock unlock];
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[anObject doSomething];
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这是一个典型的多线程问题，但是由于最近小半年一直在用swift写系统插件，导致回答问题时，记忆出现了点混沌。虽然竞争资源的问题回答清楚了，但是自己补充的一个引用计数的问题，回答的时候没太大把握。&lt;/p>
+&lt;p>我当时的补充回答是：“anObject在引用计数方面感觉有点问题，后续可能会导致线程安全性的问题，但是太久没写OC了，判断依据有点模糊了。”。当然这个回答是一个基于经验型的感觉，但是一直没回想起为什么会有这种感觉。&lt;/p>
+&lt;p>面试结束后，复盘了一下这个问题，突然意识到这种直觉的出处了。引用计数的安全性问题是源于MRC和ARC的处理不一样，而题目也没有指定使用的是ARC和MRC。&lt;/p>
+&lt;p>在MRC下，任何需要持有的数据必须手动retain，但是在这里，anObject在赋值后没有调用retain。所以，在unlock后，如果其他线程执行了[myArray removeObjectAtIndex:0]之类的处理，就会导致anObject对象销毁，进一步导致野指针问题。&lt;/p>
+&lt;p>而在ARC下，anObject在赋值过程中会自动retain。在其他线程中从数组中删除对象不会导致anObject销毁。&lt;/p>
+&lt;p>引用计数测试代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-gdscript3" data-lang="gdscript3">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#import &amp;lt;Foundation/Foundation.h&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="ne">int&lt;/span> &lt;span class="n">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="ne">int&lt;/span> &lt;span class="n">argc&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">const&lt;/span> &lt;span class="n">char&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="n">argv&lt;/span>&lt;span class="p">[])&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">id&lt;/span> &lt;span class="n">anObject&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[[&lt;/span>&lt;span class="n">NSObject&lt;/span> &lt;span class="n">alloc&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="n">init&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">id&lt;/span> &lt;span class="n">anOtherObject&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">anObject&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">NSLog&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="err">@&lt;/span>&lt;span class="s2">&amp;#34;11&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>编译设置ARC(clang -fobjc-arc -S -emit-llvm -fobjc-arc arc_mrc_test.m)&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-gdscript3" data-lang="gdscript3">&lt;span class="line">&lt;span class="cl">&lt;span class="n">define&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">i32&lt;/span> &lt;span class="n">noundef&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="n">noundef&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">#0 {&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">3&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">i32&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">4&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">6&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">7&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">load&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="s2">&amp;#34;OBJC_CLASSLIST_REFERENCES_$_&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">8&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">call&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">objc_alloc_init&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">7&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">9&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">load&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">10&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">call&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">llvm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">objc&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">retain&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">9&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">#1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">6&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">call&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">llvm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">objc&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">storeStrong&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">6&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="n">null&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">#1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">call&lt;/span> &lt;span class="n">void&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">llvm&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">objc&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">storeStrong&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="n">null&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">#1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ret&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="mi">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从编译得到的LLVM代码可以明显看到明显的objc.storeStrong。&lt;/p>
+&lt;p>而编译MRC(clang -fobjc-arc -S -emit-llvm -fno-objc-arc arc_mrc_test.m)&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-gdscript3" data-lang="gdscript3">&lt;span class="line">&lt;span class="cl">&lt;span class="n">define&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">i32&lt;/span> &lt;span class="n">noundef&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="n">noundef&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">#0 {&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">3&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">i32&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">4&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">6&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">alloca&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">4&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">7&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">load&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="s2">&amp;#34;OBJC_CLASSLIST_REFERENCES_$_&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">8&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">call&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="err">@&lt;/span>&lt;span class="n">objc_alloc_init&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">7&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="o">%&lt;/span>&lt;span class="mi">9&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">load&lt;/span> &lt;span class="n">ptr&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">store&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">9&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ptr&lt;/span> &lt;span class="o">%&lt;/span>&lt;span class="mi">6&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">align&lt;/span> &lt;span class="mi">8&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="n">ret&lt;/span> &lt;span class="n">i32&lt;/span> &lt;span class="mi">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从编译的代码可以看到没有任何处理。&lt;a class="link" href="https://developer.apple.com/library/archive/releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html#//apple_ref/doc/uid/TP40011226" target="_blank" rel="noopener"
+>苹果官方&lt;/a>也明确指出了这点。&lt;/p></description></item></channel></rss>
